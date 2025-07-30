@@ -19,10 +19,21 @@ const AssessmentTaking: React.FC<AssessmentTakingProps> = ({ assessment, onCompl
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // Calculate time remaining with better precision
-    const endTime = new Date(assessment.endTime).getTime();
+    // Calculate time remaining with better date handling
+    let endTime: Date;
+    try {
+      endTime = new Date(assessment.endTime);
+      if (isNaN(endTime.getTime())) {
+        toast.error('Invalid assessment end time');
+        return;
+      }
+    } catch (error) {
+      toast.error('Error parsing assessment end time');
+      return;
+    }
+    
     const now = Date.now();
-    const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+    const remaining = Math.max(0, Math.floor((endTime.getTime() - now) / 1000));
     setTimeRemaining(remaining);
 
     if (remaining <= 0) {

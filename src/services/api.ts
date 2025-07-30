@@ -81,6 +81,8 @@ export const alumniAPI = {
 
 export const assessmentAPI = {
   create: (assessmentData: any) => api.post("/assessments", assessmentData),
+  update: (assessmentId: string, assessmentData: any) => api.put(`/assessments/${assessmentId}`, assessmentData),
+  delete: (assessmentId: string) => api.delete(`/assessments/${assessmentId}`),
   getById: (assessmentId: string) => api.get(`/assessments/${assessmentId}`),
   getByStudent: (studentId: string) =>
     api.get(`/assessments/student/${studentId}`),

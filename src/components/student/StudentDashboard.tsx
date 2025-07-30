@@ -86,8 +86,19 @@ const StudentDashboard: React.FC = () => {
 
   const getAssessmentStatus = (assessment: Assessment) => {
     const now = currentTime;
-    const startTime = new Date(assessment.startTime);
-    const endTime = new Date(assessment.endTime);
+    
+    let startTime: Date, endTime: Date;
+    try {
+      startTime = new Date(assessment.startTime);
+      endTime = new Date(assessment.endTime);
+      
+      // Validate dates
+      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+        return { status: "INVALID", label: "INVALID DATE" };
+      }
+    } catch (error) {
+      return { status: "INVALID", label: "INVALID DATE" };
+    }
 
     if (now < startTime) {
       return { status: "FUTURE", label: "FUTURE" };

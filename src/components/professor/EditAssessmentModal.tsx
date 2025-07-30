@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
-import { Question } from '../../types';
+import { Assessment, Question } from '../../types';
 
-interface CreateAssessmentModalProps {
+interface EditAssessmentModalProps {
+  assessment: Assessment;
   onClose: () => void;
   onSubmit: (assessment: any) => void;
 }
 
-const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({ onClose, onSubmit }) => {
+const EditAssessmentModal: React.FC<EditAssessmentModalProps> = ({ assessment, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -15,14 +16,42 @@ const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({ onClose, 
     endTime: '',
     assignedStudents: [] as string[],
   });
-  const [questions, setQuestions] = useState<Omit<Question, 'id'>[]>([
-    {
-      questionText: '',
-      options: ['', '', '', ''],
-      correctAnswer: 0,
-    }
-  ]);
+  const [questions, setQuestions] = useState<Omit<Question, 'id'>[]>([]);
   const [studentInput, setStudentInput] = useState('');
+
+  useEffect(() => {
+    if (assessment) {
+      // Convert ISO strings to datetime-local format
+      const startDate = new Date(assessment.startTime);
+      const endDate = new Date(assessment.endTime);
+      
+      // Format for datetime-local input
+      const formatDateTimeLocal = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      };
+
+      setFormData({
+        title: assessment.title,
+        description: assessment.description,
+        startTime: formatDateTimeLocal(startDate),
+        endTime: formatDateTimeLocal(endDate),
+        assignedStudents: [...assessment.assignedStudents],
+      });
+
+      // Convert questions to the format expected by the form
+      const formattedQuestions = assessment.questions.map(q => ({
+        questionText: q.questionText,
+        options: [...q.options],
+        correctAnswer: q.correctAnswer,
+      }));
+      setQuestions(formattedQuestions);
+    }
+  }, [assessment]);
 
   const addQuestion = () => {
     setQuestions([...questions, {
@@ -101,7 +130,7 @@ const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({ onClose, 
       return;
     }
     
-    const assessment = {
+    const assessmentData = {
       ...formData,
       questions: questions.map((q, index) => ({ ...q, id: `q${index}` })),
       startTime: startTime.toISOString(),
@@ -109,14 +138,14 @@ const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({ onClose, 
       durationMinutes: Math.round(durationMs / (1000 * 60)),
     };
     
-    onSubmit(assessment);
+    onSubmit(assessmentData);
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">Create New Assessment</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Edit Assessment</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -315,7 +344,7 @@ const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({ onClose, 
               type="submit"
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Create Assessment
+              Update Assessment
             </button>
           </div>
         </form>
@@ -324,4 +353,4 @@ const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({ onClose, 
   );
 };
 
-export default CreateAssessmentModal;
+export default EditAssessmentModal;

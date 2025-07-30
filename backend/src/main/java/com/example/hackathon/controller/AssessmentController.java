@@ -127,6 +127,56 @@ public class AssessmentController {
         return ResponseEntity.ok(results);
     }
 
+    @DeleteMapping("/{assessmentId}")
+    public ResponseEntity<?> deleteAssessment(@PathVariable String assessmentId) {
+        try {
+            Optional<Assessment> assessmentOpt = assessmentRepository.findById(assessmentId);
+            if (!assessmentOpt.isPresent()) {
+                return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Assessment not found!"));
+            }
+
+            // Delete associated results first
+            List<AssessmentResult> results = assessmentResultRepository.findByAssessmentId(assessmentId);
+            assessmentResultRepository.deleteAll(results);
+            
+            // Delete the assessment
+            assessmentRepository.deleteById(assessmentId);
+            
+            return ResponseEntity.ok(new ApiResponse(true, "Assessment deleted successfully!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .body(new ApiResponse(false, "Failed to delete assessment: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{assessmentId}")
+    public ResponseEntity<?> updateAssessment(@PathVariable String assessmentId, @RequestBody Assessment assessment) {
+        try {
+            Optional<Assessment> existingAssessmentOpt = assessmentRepository.findById(assessmentId);
+            if (!existingAssessmentOpt.isPresent()) {
+                return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Assessment not found!"));
+            }
+
+            Assessment existingAssessment = existingAssessmentOpt.get();
+            
+            // Update fields
+            existingAssessment.setTitle(assessment.getTitle());
+            existingAssessment.setDescription(assessment.getDescription());
+            existingAssessment.setQuestions(assessment.getQuestions());
+            existingAssessment.setStartTime(assessment.getStartTime());
+            existingAssessment.setEndTime(assessment.getEndTime());
+            existingAssessment.setAssignedStudents(assessment.getAssignedStudents());
+            
+            Assessment updatedAssessment = assessmentRepository.save(existingAssessment);
+            return ResponseEntity.ok(updatedAssessment);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .body(new ApiResponse(false, "Failed to update assessment: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/{assessmentId}/status")
     public ResponseEntity<?> getAssessmentStatus(@PathVariable String assessmentId) {
         try {
@@ -139,9 +189,29 @@ public class AssessmentController {
             }
 
             Assessment assessment = assessmentOpt.get();
-            LocalDateTime now = LocalDateTime.now(IST_ZONE);
-            LocalDateTime start = LocalDateTime.parse(assessment.getStartTime());
-            LocalDateTime end = LocalDateTime.parse(assessment.getEndTime());
+            LocalDateTime now = LocalDateTime.now();
+            
+            // Parse the ISO string properly
+            LocalDateTime start;
+            LocalDateTime end;
+            
+            try {
+                if (assessment.getStartTime().endsWith("Z")) {
+                    start = LocalDateTime.parse(assessment.getStartTime().replace("Z", ""));
+                } else {
+                    start = LocalDateTime.parse(assessment.getStartTime());
+                }
+                
+                if (assessment.getEndTime().endsWith("Z")) {
+                    end = LocalDateTime.parse(assessment.getEndTime().replace("Z", ""));
+                } else {
+                    end = LocalDateTime.parse(assessment.getEndTime());
+                }
+            } catch (Exception e) {
+                // Fallback parsing
+                start = LocalDateTime.parse(assessment.getStartTime().substring(0, 19));
+                end = LocalDateTime.parse(assessment.getEndTime().substring(0, 19));
+            }
 
             String status;
             long timeUntilStart = 0;

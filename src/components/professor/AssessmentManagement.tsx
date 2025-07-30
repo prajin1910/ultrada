@@ -6,12 +6,15 @@ import { Assessment } from '../../types';
 import toast from 'react-hot-toast';
 import CreateAssessmentModal from './CreateAssessmentModal';
 import AssessmentResultsModal from './AssessmentResultsModal';
+import EditAssessmentModal from './EditAssessmentModal';
 
 const AssessmentManagement: React.FC = () => {
   const { user } = useAuth();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingAssessment, setEditingAssessment] = useState<Assessment | null>(null);
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
   const [showResultsModal, setShowResultsModal] = useState(false);
 
@@ -64,6 +67,38 @@ const AssessmentManagement: React.FC = () => {
     }
   };
 
+  const handleEditAssessment = async (assessmentData: any) => {
+    if (!editingAssessment) return;
+    
+    try {
+      await assessmentAPI.update(editingAssessment.id, { ...assessmentData, createdBy: user!.id });
+      toast.success('Assessment updated successfully!');
+      setShowEditModal(false);
+      setEditingAssessment(null);
+      fetchAssessments();
+    } catch (error) {
+      toast.error('Failed to update assessment');
+    }
+  };
+
+  const handleDeleteAssessment = async (assessmentId: string) => {
+    if (!window.confirm('Are you sure you want to delete this assessment? This action cannot be undone and will also delete all associated results.')) {
+      return;
+    }
+    
+    try {
+      await assessmentAPI.delete(assessmentId);
+      toast.success('Assessment deleted successfully!');
+      fetchAssessments();
+    } catch (error) {
+      toast.error('Failed to delete assessment');
+    }
+  };
+
+  const openEditModal = (assessment: Assessment) => {
+    setEditingAssessment(assessment);
+    setShowEditModal(true);
+  };
   const viewResults = (assessment: Assessment) => {
     setSelectedAssessment(assessment);
     setShowResultsModal(true);
@@ -174,10 +209,18 @@ const AssessmentManagement: React.FC = () => {
                   >
                     <BarChart3 className="w-4 h-4" />
                   </button>
-                  <button className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                  <button 
+                    onClick={() => openEditModal(assessment)}
+                    className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                    title="Edit Assessment"
+                  >
                     <Edit className="w-4 h-4" />
                   </button>
-                  <button className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                  <button 
+                    onClick={() => handleDeleteAssessment(assessment.id)}
+                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete Assessment"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -194,6 +237,16 @@ const AssessmentManagement: React.FC = () => {
         />
       )}
 
+      {showEditModal && editingAssessment && (
+        <EditAssessmentModal
+          assessment={editingAssessment}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingAssessment(null);
+          }}
+          onSubmit={handleEditAssessment}
+        />
+      )}
       {showResultsModal && selectedAssessment && (
         <AssessmentResultsModal
           assessment={selectedAssessment}

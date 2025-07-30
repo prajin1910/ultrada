@@ -101,8 +101,21 @@ const AssessmentSection: React.FC = () => {
 
   const getStatusText = (assessment: Assessment) => {
     const now = currentTime;
-    const start = new Date(assessment.startTime);
-    const end = new Date(assessment.endTime);
+    
+    // Better date parsing to handle different formats
+    let start: Date, end: Date;
+    try {
+      start = new Date(assessment.startTime);
+      end = new Date(assessment.endTime);
+      
+      // Validate dates
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        throw new Error('Invalid date format');
+      }
+    } catch (error) {
+      console.error('Date parsing error:', error);
+      return 'Invalid Date';
+    }
     
     if (now < start) return 'Upcoming';
     if (now >= start && now <= end) return 'Ongoing';
@@ -111,8 +124,19 @@ const AssessmentSection: React.FC = () => {
 
   const isAssessmentAvailable = (assessment: Assessment) => {
     const now = currentTime;
-    const start = new Date(assessment.startTime);
-    const end = new Date(assessment.endTime);
+    
+    let start: Date, end: Date;
+    try {
+      start = new Date(assessment.startTime);
+      end = new Date(assessment.endTime);
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return false;
+      }
+    } catch (error) {
+      return false;
+    }
+    
     return now >= start && now <= end;
   };
 
@@ -122,7 +146,17 @@ const AssessmentSection: React.FC = () => {
 
   const getTimeUntilStart = (assessment: Assessment) => {
     const now = currentTime;
-    const start = new Date(assessment.startTime);
+    
+    let start: Date;
+    try {
+      start = new Date(assessment.startTime);
+      if (isNaN(start.getTime())) {
+        return 'Invalid Date';
+      }
+    } catch (error) {
+      return 'Invalid Date';
+    }
+    
     const diff = start.getTime() - now.getTime();
     
     if (diff <= 0) return null;
@@ -140,7 +174,17 @@ const AssessmentSection: React.FC = () => {
 
   const getTimeRemaining = (assessment: Assessment) => {
     const now = currentTime;
-    const end = new Date(assessment.endTime);
+    
+    let end: Date;
+    try {
+      end = new Date(assessment.endTime);
+      if (isNaN(end.getTime())) {
+        return 'Invalid Date';
+      }
+    } catch (error) {
+      return 'Invalid Date';
+    }
+    
     const diff = end.getTime() - now.getTime();
     
     if (diff <= 0) return null;
@@ -161,8 +205,20 @@ const AssessmentSection: React.FC = () => {
     
     // Check if assessment is currently available
     const now = currentTime;
-    const start = new Date(assessment.startTime);
-    const end = new Date(assessment.endTime);
+    
+    let start: Date, end: Date;
+    try {
+      start = new Date(assessment.startTime);
+      end = new Date(assessment.endTime);
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        toast.error('Invalid assessment dates');
+        return;
+      }
+    } catch (error) {
+      toast.error('Error parsing assessment dates');
+      return;
+    }
     
     if (now < start) {
       toast.error(`Assessment starts in ${getTimeUntilStart(assessment)}`);
