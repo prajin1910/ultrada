@@ -1,0 +1,36 @@
+User Registration Process
+
+Step 1: User Access
+- User visits the registration page
+- System displays registration form
+
+Step 2: Input Collection
+- User enters email address
+- User creates password
+- User confirms password
+- User enters personal information
+
+Step 3: Validation
+- System validates email format
+- System checks password strength
+- System verifies password confirmation matches
+
+Step 4: Email Check
+- System queries database for existing email
+- If email exists: Display error and return to Step 2
+- If email is new: Continue to Step 5
+
+Step 5: Account Creation
+- System creates new user account
+- System generates user ID
+- System stores user information in database
+
+Step 6: Verification
+- System sends confirmation email
+- User clicks email verification link
+- System activates user account
+
+Step 7: Completion
+- System displays success message
+- User is redirected to login page
+- Process complete

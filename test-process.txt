@@ -1,0 +1,15 @@
+Simple Process Document
+
+This document describes a basic user registration process:
+
+1. User enters their email and password
+2. System validates the email format
+3. If email is invalid, show error message and go back to step 1
+4. If email is valid, check if email already exists in database
+5. If email exists, show "email already registered" error and go back to step 1
+6. If email doesn't exist, create new user account
+7. Send confirmation email to user
+8. Display success message to user
+9. Process complete
+
+This is a simple workflow that can be converted into a flowchart.

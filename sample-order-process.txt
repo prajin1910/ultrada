@@ -1,0 +1,45 @@
+Sample Business Process Document
+
+Customer Order Processing Workflow
+
+1. Customer Places Order
+   - Customer visits website
+   - Selects products and adds to cart
+   - Proceeds to checkout
+   - Enters shipping and payment information
+   - Submits order
+
+2. Order Validation
+   - System validates payment information
+   - If payment fails, notify customer and return to step 1
+   - If payment succeeds, proceed to inventory check
+
+3. Inventory Check
+   - Check product availability in warehouse
+   - If items not available, notify customer and offer alternatives
+   - If items available, reserve inventory
+
+4. Order Processing
+   - Generate order confirmation number
+   - Send confirmation email to customer
+   - Create picking list for warehouse
+
+5. Fulfillment
+   - Warehouse picks items from inventory
+   - Pack items for shipping
+   - Generate shipping label
+   - Hand over to shipping carrier
+
+6. Shipping and Delivery
+   - Carrier picks up package
+   - Package is in transit
+   - Package delivered to customer
+   - Delivery confirmation sent
+
+7. Post-Delivery
+   - Customer receives order
+   - Send satisfaction survey
+   - Process returns if needed
+   - Update customer records
+
+This workflow ensures efficient order processing from start to finish.

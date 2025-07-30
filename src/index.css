@@ -1,0 +1,64 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --deep-blue: #0a2540;
+  --accent-blue: #3e63dd;
+  --accent-green: #10b981;
+  --soft-bg: #f8f9fa;
+  --card-bg: #ffffff;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --border-color: #e5e7eb;
+  --deep-purple: #4c33b3;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  background-color: var(--soft-bg);
+  color: var(--text-primary);
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-200 transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .btn {
+    @apply font-semibold py-2.5 px-5 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-600;
+  }
+
+  .btn-secondary {
+    @apply bg-green-500 text-white hover:bg-green-600 focus:ring-green-500;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-gray-600 hover:bg-gray-200 hover:text-gray-900;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-600 hover:bg-blue-600 hover:text-white transition-colors duration-200;
+  }
+
+  .nav-link.active {
+    @apply bg-blue-600 text-white font-semibold;
+  }
+
+  .pill-tab {
+    @apply px-4 py-1.5 text-sm font-semibold rounded-full cursor-pointer transition-all duration-300;
+  }
+
+  .pill-tab.active {
+    @apply bg-blue-900 text-white shadow-md;
+  }
+
+  .pill-tab.inactive {
+    @apply bg-transparent text-gray-600 hover:bg-gray-200;
+  }
+}
