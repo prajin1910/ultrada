@@ -8,6 +8,7 @@ interface AuthContextType {
   login: (user: User, token: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  refreshAuth: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,52 +27,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
     const initializeAuth = async () => {
+      if (sessionChecked) return;
+      
       try {
         const savedToken = localStorage.getItem("token");
         const savedUser = localStorage.getItem("user");
 
-        console.log(
-          "Debug - AuthContext initialization - Token exists:",
-          !!savedToken
-        );
-        console.log(
-          "Debug - AuthContext initialization - User exists:",
-          !!savedUser
-        );
 
         if (savedToken && savedUser) {
-          // Verify token is still valid
+          // Set token in axios headers
           axios.defaults.headers.common[
             "Authorization"
           ] = `Bearer ${savedToken}`;
           setToken(savedToken);
           setUser(JSON.parse(savedUser));
-          console.log(
-            "Debug - AuthContext - User and token restored from localStorage"
-          );
-        } else {
-          console.log("Debug - AuthContext - No saved credentials found");
         }
+        setSessionChecked(true);
       } catch (error) {
-        // Token is invalid, clear storage
-        console.log(
-          "Debug - AuthContext - Error during initialization:",
-          error
-        );
+        console.error("Auth initialization error:", error);
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        setSessionChecked(true);
       } finally {
         setLoading(false);
       }
     };
 
     initializeAuth();
-  }, []);
+  }, [sessionChecked]);
 
+  const refreshAuth = () => {
+    const savedToken = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
+    
+    if (savedToken && savedUser && (!token || !user)) {
+      setToken(savedToken);
+      setUser(JSON.parse(savedUser));
+      axios.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
+    }
+  };
   const login = (userData: User, authToken: string) => {
+    console.log("Login successful, setting user data");
     setUser(userData);
     setToken(authToken);
     localStorage.setItem("token", authToken);
@@ -80,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const logout = () => {
+    console.log("Logout initiated");
     setUser(null);
     setToken(null);
     localStorage.removeItem("token");
@@ -106,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         login,
         logout,
         isAuthenticated: !!token && !!user,
+        refreshAuth,
       }}
     >
       {children}

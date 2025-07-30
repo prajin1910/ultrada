@@ -30,7 +30,7 @@ const StudentDashboard: React.FC = () => {
   >([]);
   const [loading, setLoading] = useState(false);
   const [resultsLoading, setResultsLoading] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(() => new Date());
   const [assessmentFilter, setAssessmentFilter] = useState<
     "ongoing" | "past" | "future"
   >("ongoing");
@@ -51,34 +51,38 @@ const StudentDashboard: React.FC = () => {
       fetchAssessmentResults();
     }
 
-    // Update current time every minute
+    // Update current time every 2 minutes to reduce unnecessary re-renders
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000);
+    }, 120000);
 
     return () => clearInterval(timer);
   }, [user]);
 
   const fetchAssessments = async () => {
-    setLoading(true);
+    if (!user) return;
+    
     try {
+      setLoading(true);
       const response = await assessmentAPI.getByStudent(user!.id);
       setAssessments(response.data);
     } catch (error) {
-      toast.error("Failed to fetch assessments");
+      console.error("Failed to fetch assessments:", error);
+      // Don't show error toast to avoid spam
     } finally {
       setLoading(false);
     }
   };
 
   const fetchAssessmentResults = async () => {
-    setResultsLoading(true);
+    if (!user) return;
+    
     try {
+      setResultsLoading(true);
       const response = await assessmentAPI.getStudentResults(user!.id);
       setAssessmentResults(response.data);
     } catch (error) {
       console.error("Failed to fetch assessment results:", error);
-      // Don't show error toast as results might not exist yet
     } finally {
       setResultsLoading(false);
     }
@@ -87,25 +91,23 @@ const StudentDashboard: React.FC = () => {
   const getAssessmentStatus = (assessment: Assessment) => {
     const now = currentTime;
     
-    let startTime: Date, endTime: Date;
     try {
-      startTime = new Date(assessment.startTime);
-      endTime = new Date(assessment.endTime);
+      const startTime = new Date(assessment.startTime);
+      const endTime = new Date(assessment.endTime);
       
-      // Validate dates
       if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
         return { status: "INVALID", label: "INVALID DATE" };
       }
+
+      if (now < startTime) {
+        return { status: "FUTURE", label: "FUTURE" };
+      } else if (now >= startTime && now <= endTime) {
+        return { status: "ONGOING", label: "ONGOING" };
+      } else {
+        return { status: "PAST", label: "PAST" };
+      }
     } catch (error) {
       return { status: "INVALID", label: "INVALID DATE" };
-    }
-
-    if (now < startTime) {
-      return { status: "FUTURE", label: "FUTURE" };
-    } else if (now >= startTime && now <= endTime) {
-      return { status: "ONGOING", label: "ONGOING" };
-    } else {
-      return { status: "PAST", label: "PAST" };
     }
   };
 

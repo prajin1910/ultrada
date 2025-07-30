@@ -13,7 +13,7 @@ const AssessmentSection: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'current' | 'past' | 'future'>('current');
   const [takingAssessment, setTakingAssessment] = useState<Assessment | null>(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(() => new Date());
 
   useEffect(() => {
     if (user) {
@@ -21,25 +21,14 @@ const AssessmentSection: React.FC = () => {
       fetchAssessmentResults();
     }
     
-    // Update current time every 30 seconds for better accuracy
+    // Update current time every minute for better accuracy without being too aggressive
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 30000);
+    }, 60000);
     
     return () => clearInterval(timer);
   }, [user]);
 
-  // Refresh assessments every 2 minutes to get latest data
-  useEffect(() => {
-    if (user) {
-      const refreshTimer = setInterval(() => {
-        fetchAssessments();
-        fetchAssessmentResults();
-      }, 120000); // 2 minutes
-      
-      return () => clearInterval(refreshTimer);
-    }
-  }, [user]);
 
   const fetchAssessments = async () => {
     setLoading(true);
@@ -47,7 +36,8 @@ const AssessmentSection: React.FC = () => {
       const response = await assessmentAPI.getByStudent(user!.id);
       setAssessments(response.data);
     } catch (error) {
-      toast.error('Failed to fetch assessments');
+      console.error('Failed to fetch assessments:', error);
+      // Don't show error toast for network issues to avoid spam
     } finally {
       setLoading(false);
     }
@@ -66,78 +56,82 @@ const AssessmentSection: React.FC = () => {
     }
   };
 
-  const checkAssessmentStatus = async (assessmentId: string) => {
-    try {
-      const response = await assessmentAPI.getStatus(assessmentId);
-      return response.data.status;
-    } catch (error) {
-      console.error('Failed to check assessment status');
-      return null;
-    }
-  };
 
   const categorizeAssessments = () => {
     const now = currentTime;
     return {
       current: assessments.filter(a => 
-        new Date(a.startTime) <= now && new Date(a.endTime) >= now
+        isAssessmentOngoing(a, now)
       ),
       past: assessments.filter(a => new Date(a.endTime) < now),
       future: assessments.filter(a => new Date(a.startTime) > now),
     };
   };
 
+  const isAssessmentOngoing = (assessment: Assessment, now: Date) => {
+    try {
+      const start = new Date(assessment.startTime);
+      const end = new Date(assessment.endTime);
+      return start <= now && end >= now;
+    } catch (error) {
+      return false;
+    }
+  };
   const { current, past, future } = categorizeAssessments();
 
   const getStatusColor = (assessment: Assessment) => {
     const now = currentTime;
-    const start = new Date(assessment.startTime);
-    const end = new Date(assessment.endTime);
     
-    if (now < start) return 'text-blue-600 bg-blue-100';
-    if (now >= start && now <= end) return 'text-green-600 bg-green-100';
-    return 'text-gray-600 bg-gray-100';
+    try {
+      const start = new Date(assessment.startTime);
+      const end = new Date(assessment.endTime);
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return 'text-gray-600 bg-gray-100';
+      }
+    
+      if (now < start) return 'text-blue-600 bg-blue-100';
+      if (now >= start && now <= end) return 'text-green-600 bg-green-100';
+      return 'text-gray-600 bg-gray-100';
+    } catch (error) {
+      return 'text-gray-600 bg-gray-100';
+    }
   };
 
   const getStatusText = (assessment: Assessment) => {
     const now = currentTime;
     
-    // Better date parsing to handle different formats
-    let start: Date, end: Date;
     try {
-      start = new Date(assessment.startTime);
-      end = new Date(assessment.endTime);
+      const start = new Date(assessment.startTime);
+      const end = new Date(assessment.endTime);
       
-      // Validate dates
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        throw new Error('Invalid date format');
+        return 'Invalid Date';
       }
+    
+      if (now < start) return 'Upcoming';
+      if (now >= start && now <= end) return 'Ongoing';
+      return 'Completed';
     } catch (error) {
-      console.error('Date parsing error:', error);
       return 'Invalid Date';
     }
-    
-    if (now < start) return 'Upcoming';
-    if (now >= start && now <= end) return 'Ongoing';
-    return 'Completed';
   };
 
   const isAssessmentAvailable = (assessment: Assessment) => {
     const now = currentTime;
     
-    let start: Date, end: Date;
     try {
-      start = new Date(assessment.startTime);
-      end = new Date(assessment.endTime);
+      const start = new Date(assessment.startTime);
+      const end = new Date(assessment.endTime);
       
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         return false;
       }
+    
+      return now >= start && now <= end;
     } catch (error) {
       return false;
     }
-    
-    return now >= start && now <= end;
   };
 
   const hasSubmittedAssessment = (assessmentId: string) => {
@@ -147,94 +141,65 @@ const AssessmentSection: React.FC = () => {
   const getTimeUntilStart = (assessment: Assessment) => {
     const now = currentTime;
     
-    let start: Date;
     try {
-      start = new Date(assessment.startTime);
+      const start = new Date(assessment.startTime);
       if (isNaN(start.getTime())) {
         return 'Invalid Date';
       }
+    
+      const diff = start.getTime() - now.getTime();
+    
+      if (diff <= 0) return null;
+    
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+      if (days > 0) return `${days}d ${hours}h`;
+      if (hours > 0) return `${hours}h ${minutes}m`;
+      if (minutes > 0) return `${minutes}m`;
+      return 'Starting soon';
     } catch (error) {
       return 'Invalid Date';
     }
-    
-    const diff = start.getTime() - now.getTime();
-    
-    if (diff <= 0) return null;
-    
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    
-    if (days > 0) return `${days}d ${hours}h`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    if (minutes > 0) return `${minutes}m`;
-    return `${seconds}s`;
   };
 
   const getTimeRemaining = (assessment: Assessment) => {
     const now = currentTime;
     
-    let end: Date;
     try {
-      end = new Date(assessment.endTime);
+      const end = new Date(assessment.endTime);
       if (isNaN(end.getTime())) {
         return 'Invalid Date';
       }
+    
+      const diff = end.getTime() - now.getTime();
+    
+      if (diff <= 0) return null;
+    
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+      if (hours > 0) return `${hours}h ${minutes}m remaining`;
+      if (minutes > 0) return `${minutes}m remaining`;
+      return 'Ending soon';
     } catch (error) {
       return 'Invalid Date';
     }
-    
-    const diff = end.getTime() - now.getTime();
-    
-    if (diff <= 0) return null;
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    
-    if (hours > 0) return `${hours}h ${minutes}m remaining`;
-    if (minutes > 0) return `${minutes}m remaining`;
-    return `${seconds}s remaining`;
   };
+  
   const startAssessment = async (assessment: Assessment) => {
     if (hasSubmittedAssessment(assessment.id)) {
       toast.error('You have already submitted this assessment');
       return;
     }
     
-    // Check if assessment is currently available
-    const now = currentTime;
-    
-    let start: Date, end: Date;
-    try {
-      start = new Date(assessment.startTime);
-      end = new Date(assessment.endTime);
-      
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        toast.error('Invalid assessment dates');
-        return;
-      }
-    } catch (error) {
-      toast.error('Error parsing assessment dates');
-      return;
-    }
-    
-    if (now < start) {
-      toast.error(`Assessment starts in ${getTimeUntilStart(assessment)}`);
-      return;
-    }
-    
-    if (now > end) {
-      toast.error('Assessment time has ended');
-      return;
-    }
-    
-    if (now >= start && now <= end) {
-      setTakingAssessment(assessment);
-    } else {
+    if (!isAssessmentAvailable(assessment)) {
       toast.error('Assessment is not currently available');
+      return;
     }
+    
+    setTakingAssessment(assessment);
   };
 
   const viewResults = (assessment: Assessment) => {

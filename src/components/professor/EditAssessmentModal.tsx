@@ -104,41 +104,51 @@ const EditAssessmentModal: React.FC<EditAssessmentModalProps> = ({ assessment, o
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate dates
-    const startTime = new Date(formData.startTime);
-    const endTime = new Date(formData.endTime);
+    try {
+      // Validate dates
+      const startTime = new Date(formData.startTime);
+      const endTime = new Date(formData.endTime);
+      
+      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+        alert('Please enter valid dates and times');
+        return;
+      }
     
-    if (endTime <= startTime) {
-      alert('End time must be after start time');
-      return;
+      if (endTime <= startTime) {
+        alert('End time must be after start time');
+        return;
+      }
+    
+      // Minimum duration check (at least 5 minutes)
+      const durationMs = endTime.getTime() - startTime.getTime();
+      if (durationMs < 5 * 60 * 1000) {
+        alert('Assessment must be at least 5 minutes long');
+        return;
+      }
+    
+      if (formData.assignedStudents.length === 0) {
+        alert('Please assign at least one student');
+        return;
+      }
+    
+      if (questions.length === 0) {
+        alert('Please add at least one question');
+        return;
+      }
+    
+      const assessmentData = {
+        ...formData,
+        questions: questions.map((q, index) => ({ ...q, id: `q${index}` })),
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        durationMinutes: Math.round(durationMs / (1000 * 60)),
+      };
+    
+      onSubmit(assessmentData);
+    } catch (error) {
+      console.error('Form validation error:', error);
+      alert('Please check your input and try again');
     }
-    
-    // Minimum duration check (at least 5 minutes)
-    const durationMs = endTime.getTime() - startTime.getTime();
-    if (durationMs < 5 * 60 * 1000) {
-      alert('Assessment must be at least 5 minutes long');
-      return;
-    }
-    
-    if (formData.assignedStudents.length === 0) {
-      alert('Please assign at least one student');
-      return;
-    }
-    
-    if (questions.length === 0) {
-      alert('Please add at least one question');
-      return;
-    }
-    
-    const assessmentData = {
-      ...formData,
-      questions: questions.map((q, index) => ({ ...q, id: `q${index}` })),
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      durationMinutes: Math.round(durationMs / (1000 * 60)),
-    };
-    
-    onSubmit(assessmentData);
   };
 
   return (

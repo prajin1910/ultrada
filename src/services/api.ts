@@ -13,14 +13,9 @@ const api = axios.create({
 // Add token to requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-  console.log("Debug - API Interceptor - Token exists:", !!token);
-  console.log("Debug - API Interceptor - Request URL:", config.url);
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-    console.log("Debug - API Interceptor - Authorization header set");
-  } else {
-    console.log("Debug - API Interceptor - No token found in localStorage");
   }
   return config;
 });
@@ -28,32 +23,20 @@ api.interceptors.request.use((config) => {
 // Add response interceptor for better error handling
 api.interceptors.response.use(
   (response) => {
-    console.log(
-      "Debug - API Response Success:",
-      response.status,
-      response.config.url
-    );
     return response;
   },
   (error) => {
-    console.log("Debug - API Response Error:", {
-      status: error.response?.status,
-      url: error.config?.url,
-      message: error.message,
-      data: error.response?.data,
-    });
 
+    // Only handle 401 errors for authentication endpoints or when token exists
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      console.log("Debug - 401 Authentication failed, clearing storage");
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      // Only redirect to login if we're not already on login/register pages
-      if (
-        !window.location.pathname.includes("/login") &&
-        !window.location.pathname.includes("/register")
-      ) {
-        console.log("Debug - Redirecting to login page");
+      const token = localStorage.getItem("token");
+      const currentPath = window.location.pathname;
+      
+      // Only clear session if we have a token and we're not on auth pages
+      if (token && !currentPath.includes("/login") && !currentPath.includes("/register")) {
+        console.warn("Session expired, redirecting to login");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
         window.location.href = "/login";
       }
     }

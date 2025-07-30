@@ -21,6 +21,10 @@ const LoginForm: React.FC = () => {
       const response = await authAPI.login(loginData);
       const { user, token } = response.data;
 
+      // Ensure we have valid user and token
+      if (!user || !token) {
+        throw new Error('Invalid login response');
+      }
       login(user, token);
       toast.success("Login successful!");
 
@@ -35,9 +39,13 @@ const LoginForm: React.FC = () => {
         case "ALUMNI":
           navigate("/alumni");
           break;
+        default:
+          navigate("/login");
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Login failed");
+      const errorMessage = error.response?.data?.message || error.message || "Login failed";
+      toast.error(errorMessage);
+      console.error('Login error:', error);
     } finally {
       setLoading(false);
     }

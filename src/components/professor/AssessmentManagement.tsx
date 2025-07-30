@@ -38,22 +38,40 @@ const AssessmentManagement: React.FC = () => {
 
   const getStatusColor = (assessment: Assessment) => {
     const now = new Date();
-    const start = new Date(assessment.startTime);
-    const end = new Date(assessment.endTime);
     
-    if (now < start) return 'text-blue-600 bg-blue-100 border-blue-300';
-    if (now >= start && now <= end) return 'text-green-600 bg-green-100 border-green-300 animate-pulse';
-    return 'text-gray-600 bg-gray-100 border-gray-300';
+    try {
+      const start = new Date(assessment.startTime);
+      const end = new Date(assessment.endTime);
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return 'text-gray-600 bg-gray-100 border-gray-300';
+      }
+    
+      if (now < start) return 'text-blue-600 bg-blue-100 border-blue-300';
+      if (now >= start && now <= end) return 'text-green-600 bg-green-100 border-green-300 animate-pulse';
+      return 'text-gray-600 bg-gray-100 border-gray-300';
+    } catch (error) {
+      return 'text-gray-600 bg-gray-100 border-gray-300';
+    }
   };
 
   const getStatusText = (assessment: Assessment) => {
     const now = new Date();
-    const start = new Date(assessment.startTime);
-    const end = new Date(assessment.endTime);
     
-    if (now < start) return 'Scheduled';
-    if (now >= start && now <= end) return 'Ongoing';
-    return 'Completed';
+    try {
+      const start = new Date(assessment.startTime);
+      const end = new Date(assessment.endTime);
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return 'Invalid Date';
+      }
+    
+      if (now < start) return 'Scheduled';
+      if (now >= start && now <= end) return 'Ongoing';
+      return 'Completed';
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
   const handleCreateAssessment = async (assessmentData: any) => {

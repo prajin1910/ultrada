@@ -43,7 +43,7 @@ const ChatSection: React.FC = () => {
   useEffect(() => {
     if (activeChat) {
       fetchMessages();
-      // Poll for new messages every 3 seconds
+      // Poll for new messages every 5 seconds to reduce server load
       const interval = setInterval(fetchMessages, 3000);
       return () => clearInterval(interval);
     }

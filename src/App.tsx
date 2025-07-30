@@ -18,7 +18,14 @@ const ProtectedRoute: React.FC<{
   children: React.ReactNode;
   allowedRoles?: string[];
 }> = ({ children, allowedRoles }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, refreshAuth } = useAuth();
+
+  // Refresh auth state if needed
+  useEffect(() => {
+    if (!isAuthenticated) {
+      refreshAuth();
+    }
+  }, [isAuthenticated, refreshAuth]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;

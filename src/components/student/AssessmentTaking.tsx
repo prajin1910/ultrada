@@ -15,48 +15,44 @@ const AssessmentTaking: React.FC<AssessmentTakingProps> = ({ assessment, onCompl
   const { user } = useAuth();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<number[]>(new Array(assessment.questions.length).fill(-1));
-  const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [timeRemaining, setTimeRemaining] = useState<number>(() => {
+    try {
+      const endTime = new Date(assessment.endTime);
+      const now = new Date();
+      return Math.max(0, Math.floor((endTime.getTime() - now.getTime()) / 1000));
+    } catch (error) {
+      return 0;
+    }
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasWarned5Min, setHasWarned5Min] = useState(false);
+  const [hasWarned1Min, setHasWarned1Min] = useState(false);
+  const [hasWarned30Sec, setHasWarned30Sec] = useState(false);
 
   useEffect(() => {
-    // Calculate time remaining with better date handling
-    let endTime: Date;
-    try {
-      endTime = new Date(assessment.endTime);
-      if (isNaN(endTime.getTime())) {
-        toast.error('Invalid assessment end time');
-        return;
-      }
-    } catch (error) {
-      toast.error('Error parsing assessment end time');
-      return;
-    }
-    
-    const now = Date.now();
-    const remaining = Math.max(0, Math.floor((endTime.getTime() - now) / 1000));
-    setTimeRemaining(remaining);
+    if (timeRemaining <= 0) return;
 
-    if (remaining <= 0) {
-      toast.error('Time is up! Assessment will be auto-submitted.');
-      submitAssessment();
-      return;
-    }
-    
     const timer = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev <= 1) {
-          toast.error('Time is up! Auto-submitting assessment...');
+          if (!isSubmitting) {
+            toast.error('Time is up! Auto-submitting assessment...');
+            submitAssessment();
+          }
           submitAssessment();
           return 0;
         }
         
-        // Show warnings at specific time intervals
-        if (prev === 300) { // 5 minutes
+        // Show warnings at specific time intervals (only once each)
+        if (prev === 300 && !hasWarned5Min) { // 5 minutes
           toast.warning('5 minutes remaining!');
-        } else if (prev === 60) { // 1 minute
+          setHasWarned5Min(true);
+        } else if (prev === 60 && !hasWarned1Min) { // 1 minute
           toast.error('1 minute remaining!');
-        } else if (prev === 30) { // 30 seconds
+          setHasWarned1Min(true);
+        } else if (prev === 30 && !hasWarned30Sec) { // 30 seconds
           toast.error('30 seconds remaining!');
+          setHasWarned30Sec(true);
         }
         
         return prev - 1;
@@ -64,7 +60,7 @@ const AssessmentTaking: React.FC<AssessmentTakingProps> = ({ assessment, onCompl
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [assessment.endTime, isSubmitting]);
+  }, [timeRemaining, isSubmitting, hasWarned5Min, hasWarned1Min, hasWarned30Sec]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -97,7 +93,6 @@ const AssessmentTaking: React.FC<AssessmentTakingProps> = ({ assessment, onCompl
 
   const submitAssessment = async () => {
     if (isSubmitting) {
-      console.log('Already submitting, preventing duplicate submission');
       return;
     }
     
@@ -112,23 +107,9 @@ const AssessmentTaking: React.FC<AssessmentTakingProps> = ({ assessment, onCompl
       onComplete();
     } catch (error) {
       console.error('Submission error:', error);
-      toast.error('Failed to submit assessment. Retrying...');
+      toast.error('Failed to submit assessment');
       
-      // Retry submission once after a short delay
-      setTimeout(async () => {
-        try {
-          await assessmentAPI.submit(assessment.id, {
-            studentId: user!.id,
-            answers: answers
-          });
-          toast.success('Assessment submitted successfully!');
-          onComplete();
-        } catch (retryError) {
-          toast.error('Failed to submit assessment. Please contact support.');
-          console.error('Retry submission failed:', retryError);
-        }
-      }, 2000);
-      
+      // Allow retry
       setIsSubmitting(false);
     }
   };
